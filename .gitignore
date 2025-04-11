@@ -50,3 +50,11 @@ src/arm-none-eabi
 
 # clangd
 .cache/
+
+# Node
+node_modules/
+package-lock.json
+package.json
+
+# Local Environment
+.env
