@@ -443,7 +443,7 @@ void DisplayApp::Refresh() {
             }
           } else if (gesture == LoadDirToReturnSwipe(appStackDirections.Top())) {
             LoadPreviousScreen();
-          } else if (gesture == TouchEvents::SwipeRight) {
+          } else if (gesture == TouchEvents::SwipeRight && currentApp != Apps::QuickSettings) {
             LoadNewScreen(Apps::Clock, DisplayApp::FullRefreshDirections::RightAnim);
             appStackDirections.Reset();
             returnAppStack.Reset();
