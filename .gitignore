@@ -51,10 +51,7 @@ src/arm-none-eabi
 # clangd
 .cache/
 
-# Node
-node_modules/
-package-lock.json
+# npm files
+node_modules
 package.json
-
-# Local Environment
-.env
+package-lock.json
