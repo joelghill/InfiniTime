@@ -50,7 +50,8 @@ NimbleController::NimbleController(Pinetime::System::SystemTask& systemTask,
     motionService {*this, motionController},
     fsService {systemTask, fs},
     ancsClient {systemTask, notificationManager},
-    serviceDiscovery({&currentTimeClient, &alertNotificationClient, &ancsClient}) {
+    amsClient {*this},
+    serviceDiscovery({&currentTimeClient, &alertNotificationClient, &ancsClient, &amsClient}) {
 }
 
 void nimble_on_reset(int reason) {
@@ -162,9 +163,9 @@ void NimbleController::StartAdvertising() {
   fields.uuids16 = &HeartRateService::heartRateServiceUuid;
   fields.num_uuids16 = 1;
   fields.uuids16_is_complete = 1;
-  const ble_uuid128_t uuids128[2] = {DfuService::serviceUuid, AppleNotificationCenterClient::ancsUuid};
+  const ble_uuid128_t uuids128[3] = {DfuService::serviceUuid, AppleNotificationCenterClient::ancsUuid, AppleMediaServiceClient::amsUuid};
   fields.uuids128 = uuids128;
-  fields.num_uuids128 = 2;
+  fields.num_uuids128 = 3;
   fields.uuids128_is_complete = 1;
   fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
 
@@ -203,6 +204,7 @@ int NimbleController::OnGAPEvent(ble_gap_event* event) {
         currentTimeClient.Reset();
         alertNotificationClient.Reset();
         ancsClient.Reset();
+        amsClient.Reset();
         connectionHandle = BLE_HS_CONN_HANDLE_NONE;
         bleController.Disconnect();
         fastAdvCount = 0;
@@ -376,6 +378,7 @@ int NimbleController::OnGAPEvent(ble_gap_event* event) {
 
       alertNotificationClient.OnNotification(event);
       ancsClient.OnNotification(event);
+      amsClient.OnNotification(event);
     } break;
 
     case BLE_GAP_EVENT_NOTIFY_TX:

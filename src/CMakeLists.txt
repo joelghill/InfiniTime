@@ -462,6 +462,7 @@ list(APPEND SOURCE_FILES
         components/ble/NavigationService.cpp
         components/ble/BatteryInformationService.cpp
         components/ble/AppleNotificationCenterClient.cpp
+        components/ble/AppleMediaServiceClient.cpp
         components/ble/FSService.cpp
         components/ble/ImmediateAlertService.cpp
         components/ble/ServiceDiscovery.cpp
@@ -533,6 +534,7 @@ list(APPEND RECOVERY_SOURCE_FILES
         components/ble/SimpleWeatherService.cpp
         components/ble/BatteryInformationService.cpp
         components/ble/AppleNotificationCenterClient.cpp
+        components/ble/AppleMediaServiceClient.cpp
         components/ble/FSService.cpp
         components/ble/ImmediateAlertService.cpp
         components/ble/ServiceDiscovery.cpp
@@ -651,6 +653,7 @@ set(INCLUDE_FILES
         components/ble/CurrentTimeClient.h
         components/ble/AlertNotificationClient.h
         components/ble/AppleNotificationCenterClient.h
+        components/ble/AppleMediaServiceClient.h
         components/ble/DfuService.h
         components/firmwarevalidator/FirmwareValidator.h
         components/ble/BatteryInformationService.h

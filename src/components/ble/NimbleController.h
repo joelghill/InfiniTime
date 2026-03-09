@@ -24,6 +24,7 @@
 #include "components/ble/SimpleWeatherService.h"
 #include "components/fs/FS.h"
 #include "components/ble/AppleNotificationCenterClient.h"
+#include "components/ble/AppleMediaServiceClient.h"
 
 namespace Pinetime {
   namespace Drivers {
@@ -72,6 +73,10 @@ namespace Pinetime {
         return ancsClient;
       };
 
+      Pinetime::Controllers::AppleMediaServiceClient& ams() {
+        return amsClient;
+      };
+
       Pinetime::Controllers::SimpleWeatherService& weather() {
         return weatherService;
       };
@@ -112,6 +117,7 @@ namespace Pinetime {
       MotionService motionService;
       FSService fsService;
       AppleNotificationCenterClient ancsClient;
+      AppleMediaServiceClient amsClient;
       ServiceDiscovery serviceDiscovery;
 
       uint8_t addrType;

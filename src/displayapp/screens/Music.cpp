@@ -20,6 +20,7 @@
 #include <cstdint>
 #include "displayapp/DisplayApp.h"
 #include "components/ble/MusicService.h"
+#include "components/ble/AppleMediaServiceClient.h"
 #include "displayapp/icons/music/disc.c"
 #include "displayapp/icons/music/disc_f_1.c"
 #include "displayapp/icons/music/disc_f_2.c"
@@ -43,12 +44,8 @@ inline void lv_img_set_src_arr(lv_obj_t* img, const lv_img_dsc_t* src_img) {
   lv_img_set_src(img, src_img);
 }
 
-/**
- * Music control watchapp
- *
- * TODO: Investigate Apple Media Service and AVRCPv1.6 support for seamless integration
- */
-Music::Music(Pinetime::Controllers::MusicService& music) : musicService(music) {
+Music::Music(Pinetime::Controllers::MusicService& music, Pinetime::Controllers::AppleMediaServiceClient* amsClient)
+  : musicService(music), amsClient(amsClient) {
   lv_obj_t* label;
 
   lv_style_init(&btn_style);
@@ -140,7 +137,9 @@ Music::Music(Pinetime::Controllers::MusicService& music) : musicService(music) {
 
   frameB = false;
 
-  musicService.event(Controllers::MusicService::EVENT_MUSIC_OPEN);
+  if (!UseAms()) {
+    musicService.event(Controllers::MusicService::EVENT_MUSIC_OPEN);
+  }
 
   taskRefresh = lv_task_create(RefreshTaskCallback, LV_DISP_DEF_REFR_PERIOD, LV_TASK_PRIO_MID, this);
 }
@@ -151,32 +150,67 @@ Music::~Music() {
   lv_obj_clean(lv_scr_act());
 }
 
+bool Music::UseAms() const {
+  return amsClient != nullptr && amsClient->isActive();
+}
+
+void Music::SendCommand(char musicEvent, uint8_t amsCommand) {
+  if (UseAms()) {
+    amsClient->sendCommand(amsCommand);
+  } else {
+    musicService.event(musicEvent);
+  }
+}
+
 void Music::Refresh() {
-  if (artist != musicService.getArtist()) {
-    artist = musicService.getArtist();
+  std::string currentArtist;
+  std::string currentTrack;
+  std::string currentAlbum;
+  bool currentPlaying;
+  int currentPos;
+  int currentLength;
+
+  if (UseAms()) {
+    currentArtist = amsClient->getArtist();
+    currentTrack = amsClient->getTrack();
+    currentAlbum = amsClient->getAlbum();
+    currentPlaying = amsClient->isPlaying();
+    currentPos = amsClient->getProgress();
+    currentLength = amsClient->getTrackLength();
+  } else {
+    currentArtist = musicService.getArtist();
+    currentTrack = musicService.getTrack();
+    currentAlbum = musicService.getAlbum();
+    currentPlaying = musicService.isPlaying();
+    currentPos = musicService.getProgress();
+    currentLength = musicService.getTrackLength();
+  }
+
+  if (artist != currentArtist) {
+    artist = currentArtist;
     lv_label_set_text(txtArtist, artist.data());
   }
 
-  if (track != musicService.getTrack()) {
-    track = musicService.getTrack();
+  if (track != currentTrack) {
+    track = currentTrack;
     lv_label_set_text(txtTrack, track.data());
   }
 
-  if (album != musicService.getAlbum()) {
-    album = musicService.getAlbum();
+  if (album != currentAlbum) {
+    album = currentAlbum;
   }
 
-  if (playing != musicService.isPlaying()) {
-    playing = musicService.isPlaying();
+  if (playing != currentPlaying) {
+    playing = currentPlaying;
   }
 
-  if (currentPosition != musicService.getProgress()) {
-    currentPosition = musicService.getProgress();
+  if (currentPosition != currentPos) {
+    currentPosition = currentPos;
     UpdateLength();
   }
 
-  if (totalLength != musicService.getTrackLength()) {
-    totalLength = musicService.getTrackLength();
+  if (totalLength != currentLength) {
+    totalLength = currentLength;
     UpdateLength();
   }
 
@@ -226,26 +260,21 @@ void Music::UpdateLength() {
 void Music::OnObjectEvent(lv_obj_t* obj, lv_event_t event) {
   if (event == LV_EVENT_CLICKED) {
     if (obj == btnVolDown) {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_VOLDOWN);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_VOLDOWN, Controllers::AppleMediaServiceClient::RemoteCommandVolumeDown);
     } else if (obj == btnVolUp) {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_VOLUP);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_VOLUP, Controllers::AppleMediaServiceClient::RemoteCommandVolumeUp);
     } else if (obj == btnPrev) {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_PREV);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_PREV, Controllers::AppleMediaServiceClient::RemoteCommandPreviousTrack);
     } else if (obj == btnPlayPause) {
-      if (playing == Pinetime::Controllers::MusicService::MusicStatus::Playing) {
-        musicService.event(Controllers::MusicService::EVENT_MUSIC_PAUSE);
-
-        // Let's assume it stops playing instantly
-        playing = Controllers::MusicService::NotPlaying;
+      if (playing) {
+        SendCommand(Controllers::MusicService::EVENT_MUSIC_PAUSE, Controllers::AppleMediaServiceClient::RemoteCommandPause);
+        playing = false;
       } else {
-        musicService.event(Controllers::MusicService::EVENT_MUSIC_PLAY);
-
-        // Let's assume it starts playing instantly
-        // TODO: In the future should check for BT connection for better UX
-        playing = Controllers::MusicService::Playing;
+        SendCommand(Controllers::MusicService::EVENT_MUSIC_PLAY, Controllers::AppleMediaServiceClient::RemoteCommandPlay);
+        playing = true;
       }
     } else if (obj == btnNext) {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_NEXT);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_NEXT, Controllers::AppleMediaServiceClient::RemoteCommandNextTrack);
     }
   }
 }
@@ -272,11 +301,11 @@ bool Music::OnTouchEvent(Pinetime::Applications::TouchEvents event) {
       return false;
     }
     case TouchEvents::SwipeLeft: {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_NEXT);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_NEXT, Controllers::AppleMediaServiceClient::RemoteCommandNextTrack);
       return true;
     }
     case TouchEvents::SwipeRight: {
-      musicService.event(Controllers::MusicService::EVENT_MUSIC_PREV);
+      SendCommand(Controllers::MusicService::EVENT_MUSIC_PREV, Controllers::AppleMediaServiceClient::RemoteCommandPreviousTrack);
       return true;
     }
     default: {

@@ -8,6 +8,7 @@
 #include "components/ble/BleController.h"
 #include "components/datetime/DateTimeController.h"
 #include "components/ble/NotificationManager.h"
+#include "components/ble/AppleMediaServiceClient.h"
 #include "components/motion/MotionController.h"
 #include "components/motor/MotorController.h"
 #include "displayapp/screens/ApplicationList.h"
@@ -731,6 +732,10 @@ void DisplayApp::Register(Pinetime::Controllers::MusicService* musicService) {
 
 void DisplayApp::Register(Pinetime::Controllers::NavigationService* NavigationService) {
   this->controllers.navigationService = NavigationService;
+}
+
+void DisplayApp::Register(Pinetime::Controllers::AppleMediaServiceClient* amsClient) {
+  this->controllers.amsClient = amsClient;
 }
 
 void DisplayApp::ApplyBrightness() {

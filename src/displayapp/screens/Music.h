@@ -29,13 +29,14 @@
 namespace Pinetime {
   namespace Controllers {
     class MusicService;
+    class AppleMediaServiceClient;
   }
 
   namespace Applications {
     namespace Screens {
       class Music : public Screen {
       public:
-        Music(Pinetime::Controllers::MusicService& music);
+        Music(Pinetime::Controllers::MusicService& music, Pinetime::Controllers::AppleMediaServiceClient* amsClient);
 
         ~Music() override;
 
@@ -47,6 +48,8 @@ namespace Pinetime {
         bool OnTouchEvent(TouchEvents event) override;
 
         void UpdateLength();
+        bool UseAms() const;
+        void SendCommand(char musicEvent, uint8_t amsCommand);
 
         lv_obj_t* btnPrev;
         lv_obj_t* btnPlayPause;
@@ -67,6 +70,7 @@ namespace Pinetime {
         bool frameB;
 
         Pinetime::Controllers::MusicService& musicService;
+        Pinetime::Controllers::AppleMediaServiceClient* amsClient;
 
         std::string artist;
         std::string album;
@@ -95,7 +99,7 @@ namespace Pinetime {
       static constexpr const char* icon = Screens::Symbols::music;
 
       static Screens::Screen* Create(AppControllers& controllers) {
-        return new Screens::Music(*controllers.musicService);
+        return new Screens::Music(*controllers.musicService, controllers.amsClient);
       };
 
       static bool IsAvailable(Pinetime::Controllers::FS& /*filesystem*/) {
